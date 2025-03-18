@@ -1,5 +1,4 @@
 name: CI/CD pipeline for image scanning and code scanning
-
 on:
   workflow_dispatch:
     inputs:
@@ -66,7 +65,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Download Docker image tarball from artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ inputs.docker_image }}-${{ inputs.docker_tag }}-image  # Match the artifact name from scan.yml
           path: ./  # Path to download the tarball to (directory, not file name)
