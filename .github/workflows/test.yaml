@@ -1,5 +1,4 @@
-name: CI/CD Pipeline
-
+name: testing
 on:
   workflow_dispatch:
 
