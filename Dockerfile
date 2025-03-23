@@ -60,4 +60,4 @@ USER djangouser
 EXPOSE 8080
 
 # Define the entrypoint for Streamlit
-ENTRYPOINT ["python3", sample.py"]
+ENTRYPOINT ["python3", "sample.py"]
