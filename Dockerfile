@@ -1,34 +1,63 @@
-FROM python:3.12-slim
+# Stage 1: Build Stage
+FROM python:3.12-slim as builder
 
-# Set environment variable to not buffer Python output (for logs)
-ENV PYTHONUNBUFFERED 1
+# Set environment variables
+ENV PYTHONBUFFERED=1
 
-# Set the working directory
-WORKDIR /app
-HEALTHCHECK --interval=5s --timeout=3s --retries=3 CMD curl --fail http://localhost:8080/ || exit 1
-# Create a non-root user
-RUN useradd -ms /bin/bash myuser
-
-# Copy the application files into the container
-COPY sample.py /app
-COPY requirements.txt /app
-
-# Install system dependencies and Python dependencies in one step
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends gcc libpq-dev \
-    && apt install curl -y \
-    && python -m venv /app/venv \
-    && /app/venv/bin/pip install --no-cache-dir -r requirements.txt \
-    && apt-get purge -y --auto-remove gcc libpq-dev \
+# Install build dependencies (gcc, libpq-dev)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    python3-venv \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Change ownership of files and switch to the non-root user
-RUN chown -R myuser /app
-USER myuser
+# Set working directory
+WORKDIR /app
 
-# Expose port (if applicable)
+# Copy application files (only necessary files)
+COPY . /app/
+
+# Remove unnecessary files early to reduce the image size
+
+# Create and activate a virtual environment
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Clean up unnecessary files to reduce image size
+RUN rm -rf /root/.cache/pip  # Clean up pip cache
+RUN rm -rf /app/tests  # Remove tests directory if not needed in production
+
+# Stage 2: Final (Production) Stage
+FROM python:3.12-slim as base
+
+# Set environment variables
+ENV PYTHONBUFFERED=1
+
+# Set working directory
+WORKDIR /app/
+
+# Copy virtual environment from builder stage
+COPY --from=builder /opt/venv /opt/venv
+
+# Copy only necessary files from the builder stage
+COPY --from=builder /app/sample.py /app/sample.py
+
+# Set PATH for virtual environment
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Create non-root user and set permissions
+RUN groupadd -r django && useradd -r -g django djangouser && \
+    chown -R djangouser:django /app/
+
+# Switch to non-root user
+USER djangouser
+
+# Expose port for Streamlit app
 EXPOSE 8080
 
-LABEL maintainer="Maxwell"
-# Set the entrypoint to run the application using the virtual environment's Python
-ENTRYPOINT ["/app/venv/bin/python3", "sample.py"]
+# Define the entrypoint for Streamlit
+ENTRYPOINT ["python3", sample.py"]
