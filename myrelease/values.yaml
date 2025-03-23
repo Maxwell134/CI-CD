@@ -83,14 +83,14 @@ ResourceQuota:
     pods: "10"         # Maximum number of pods
     services: "5"      # Maximum number of services
 
-livenessProbe:
-  httpGet:
-    path: /
-    port: 8080
-readinessProbe:
-  httpGet:
-    path: /
-    port: 8080
+# livenessProbe:
+#   httpGet:
+#     path: /
+#     port: 8080
+# readinessProbe:
+#   httpGet:
+#     path: /
+#     port: 8080
 
 autoscaling:
   enabled: false
